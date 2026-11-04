@@ -1,0 +1,44 @@
+{
+  "nombreApp": "Mujeres de Acción",
+  "logo": {
+    "imagen": "",
+    "linea1": "Mujeres",
+    "linea2": "de Acción"
+  },
+  "hero": {
+    "imagen": "img/hero.webp",
+    "frasePrincipal": "“Una vida con propósito comienza desde adentro.\"",
+    "fraseSecundaria": "Bienvenida, ¡Qué bueno que estés acá! Encontrá inspiración, enseñanzas y experiencias para fortalecer tu vida y seguir creciendo cada día.",
+    "colorPrincipal": "#3b3f45",
+    "colorSecundaria": "#4f6b58"
+  },
+  "categorias": [
+    {
+      "nombre": "Artículos",
+      "imagen": "img/categorias/articulos.webp",
+      "href": "articulos.html",
+      "color": "verde"
+    },
+    {
+      "nombre": "Recursos para descargar",
+      "imagen": "img/categorias/recursos.webp",
+      "href": "recursos.html",
+      "color": "rosa"
+    },
+    {
+      "nombre": "Contacto",
+      "imagen": "img/categorias/contacto.webp",
+      "href": "contacto.html",
+      "color": "salvia"
+    },
+    {
+      "nombre": "Más",
+      "imagen": "img/categorias/mas.webp",
+      "href": "mas.html",
+      "color": "lila"
+    }
+  ],
+  "pie": {
+    "texto": "Mujeres de Acción. Todos los derechos reservados."
+  }
+}
