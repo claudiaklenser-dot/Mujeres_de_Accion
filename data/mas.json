@@ -1,6 +1,12 @@
 [
   {
     "titulo": "Mujeres de la biblia",
+    "id": "mujeres-de-la-biblia-mt8o",
+    "imagen": "img/mas/mujeres-de-la-biblia-mt8o.webp",
+    "miniatura": "img/mas/mujeres-de-la-biblia-mt8o-mini.webp"
+  },
+  {
+    "titulo": "Mujeres de la biblia",
     "id": "mujeres-de-la-biblia-l6k9",
     "imagen": "img/mas/mujeres-de-la-biblia-l6k9.webp",
     "miniatura": "img/mas/mujeres-de-la-biblia-l6k9-mini.webp"
