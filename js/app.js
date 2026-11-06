@@ -114,7 +114,7 @@
   /* ---------- Instalación ---------- */
   var promptInst=null;
   function esStandalone(){return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;}
-  function instCerrado(){try{return localStorage.getItem('mda_inst_cerrado')==='1';}catch(e){return false;}}
+  function instCerrado(){try{var t=parseInt(localStorage.getItem('mda_inst_cerrado'),10);return t>1e12&&Date.now()-t<7*864e5;}catch(e){return false;}}
   function esIOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);}
   function bannerInstalar(modo){
     if(esStandalone()||instCerrado()) return;
@@ -124,8 +124,51 @@
       '<button type="button" class="cerrar" data-cerrar-inst aria-label="Cerrar">×</button></div>';
   }
   window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();promptInst=e;bannerInstalar('android');});
-  window.addEventListener('appinstalled',function(){promptInst=null;$('#instalar').innerHTML='';});
+  window.addEventListener('appinstalled',function(){promptInst=null;$('#instalar').innerHTML='';cerrarPantInst();});
   if(esIOS()&&!esStandalone()) bannerInstalar('ios');
+
+  /* ---------- Pantalla "Último paso" ----------
+     Se muestra cuando se llega desde la app vieja (la dirección trae ?desde=v1) y esta app todavía no está instalada.
+     En Android, el botón abre el cartel de instalación de Chrome; si Chrome todavía no lo habilitó, explica cómo hacerlo
+     desde el menú. En iPhone muestra los pasos de Safari. "Más tarde" la cierra sin recordar nada. */
+  var pantInst=null;
+  function cerrarPantInst(){
+    if(pantInst&&pantInst.parentNode) pantInst.parentNode.removeChild(pantInst);
+    pantInst=null; document.documentElement.style.overflow='';
+  }
+  function pantallaInstalar(){
+    if(!/[?&]desde=v1/.test(location.search)||esStandalone()||pantInst) return;
+    var ios=esIOS();
+    var o=document.createElement('div'); pantInst=o;
+    o.id='pant-instalar'; o.setAttribute('role','dialog'); o.setAttribute('aria-modal','true'); o.setAttribute('aria-labelledby','pant-inst-t');
+    o.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;background:#FBF7F1;color:#3b3b3b;font-family:Mulish,system-ui,sans-serif;padding:max(24px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom))';
+    var caja='margin-top:14px;padding:14px 16px;border-radius:16px;background:#fff;text-align:left;font-size:.9rem;line-height:1.5;box-shadow:0 1px 6px rgba(0,0,0,.08)';
+    var h='<div style="margin:auto;width:100%;max-width:420px;text-align:center">'
+      +'<div aria-hidden="true" style="font-size:2.4rem;line-height:1;margin-bottom:14px">🌿</div>'
+      +'<h1 id="pant-inst-t" style="font:600 1.9rem/1.15 Cormorant Garamond,Georgia,serif;margin:0 0 12px;color:#4F6B58">Último paso: instalá la app nueva</h1>'
+      +'<p style="margin:0 0 22px;font-size:1rem;line-height:1.55">Así queda en tu celular con su ícono verde y te llegan los avisos.</p>';
+    if(ios){
+      h+='<div style="'+caja+'"><p style="margin:0 0 8px;font-weight:700">En iPhone:</p><ol style="margin:0;padding-left:1.2em"><li>Tocá el botón Compartir.</li><li>Elegí “Agregar a inicio”.</li></ol></div>';
+    }else{
+      h+='<button type="button" id="pant-inst-ir" style="display:block;width:100%;min-height:54px;border:0;border-radius:999px;padding:.9em 1.2em;background:#4F6B58;color:#fff;font:800 1.02rem Mulish,system-ui,sans-serif;cursor:pointer">Instalar la app</button>'
+        +'<div id="pant-inst-ayuda" style="'+caja+'"><p style="margin:0">Si no se abre el cartel de instalación: tocá el menú ⋮ de Chrome (arriba a la derecha) y elegí “Instalar app” o “Agregar a la pantalla de inicio”.</p></div>';
+    }
+    h+='<p style="margin:16px 0 0;font-size:.85rem;color:#6b6b6b">Si ya la instalaste, abrila desde su ícono verde.</p>'
+      +'<button type="button" id="pant-inst-luego" style="margin-top:8px;border:0;background:none;padding:10px 14px;color:#6b6b6b;font:600 .9rem Mulish,system-ui,sans-serif;text-decoration:underline;cursor:pointer">Más tarde</button></div>';
+    o.innerHTML=h; document.body.appendChild(o); document.documentElement.style.overflow='hidden';
+    var ir=o.querySelector('#pant-inst-ir');
+    if(ir) ir.addEventListener('click',function(){
+      if(promptInst){
+        promptInst.prompt();
+        promptInst.userChoice.then(function(r){ promptInst=null; $('#instalar').innerHTML=''; if(r&&r.outcome==='accepted') cerrarPantInst(); });
+      }else{
+        var a=o.querySelector('#pant-inst-ayuda'); a.style.outline='2px solid #4F6B58';
+      }
+    });
+    o.querySelector('#pant-inst-luego').addEventListener('click',cerrarPantInst);
+    try{ (ir||o.querySelector('#pant-inst-luego')).focus({preventScroll:true}); }catch(e){}
+  }
+  pantallaInstalar();
 
   /* ---------- Menú ---------- */
   var bm=$('#btn-menu'), pm=$('#menu-panel');
@@ -146,7 +189,7 @@
       return;
     }
     if(e.target.closest('[data-cerrar-inst]')){
-      try{localStorage.setItem('mda_inst_cerrado','1');}catch(er){}
+      try{localStorage.setItem('mda_inst_cerrado',String(Date.now()));}catch(er){}
       $('#instalar').innerHTML='';
       return;
     }
