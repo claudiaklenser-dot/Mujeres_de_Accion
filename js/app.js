@@ -124,49 +124,94 @@
       '<button type="button" class="cerrar" data-cerrar-inst aria-label="Cerrar">×</button></div>';
   }
   window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();promptInst=e;bannerInstalar('android');});
-  window.addEventListener('appinstalled',function(){promptInst=null;$('#instalar').innerHTML='';cerrarPantInst();});
+  window.addEventListener('appinstalled',function(){promptInst=null;$('#instalar').innerHTML='';cerrarPantInst();mostrarListo();});
   if(esIOS()&&!esStandalone()) bannerInstalar('ios');
 
-  /* ---------- Pantalla "Último paso" ----------
-     Se muestra cuando se llega desde la app vieja (la dirección trae ?desde=v1) y esta app todavía no está instalada.
-     En Android, el botón abre el cartel de instalación de Chrome; si Chrome todavía no lo habilitó, explica cómo hacerlo
-     desde el menú. En iPhone muestra los pasos de Safari. "Más tarde" la cierra sin recordar nada. */
+  /* ---------- Pantalla de instalación ----------
+     Aparece al abrir el inicio en el navegador del celular cuando la app todavía no está instalada.
+     - Si se llega desde la app vieja (la dirección trae ?desde=v1): "Último paso: instalá la app nueva".
+       "Más tarde" la oculta hasta la próxima visita.
+     - Si se abre directo: "Instalá la app de Mujeres de Acción". "Más tarde" la oculta 7 días.
+     Android: el botón abre el cartel de instalación de Chrome; si Chrome todavía no lo habilitó, resalta cómo
+     instalar desde el menú. iPhone: pasos de Safari. Al instalarse en Android aparece "¡Listo!".
+     No aparece en computadora ni si la app ya se abrió como app instalada. */
+  var K_V1='mda_desde_v1', K_PANT='mda_pant_inst_luego', K_SES='mda_pant_inst_sesion';
+  function pLeer(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+  function pGuardar(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+  function pSesion(v){try{ if(v===undefined) return sessionStorage.getItem(K_SES); sessionStorage.setItem(K_SES,v); }catch(e){} return null;}
+  function esMovil(){var ua=navigator.userAgent||'';return /Android|iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);}
+  function vinoDeV1(){ if(/[?&]desde=v1/.test(location.search)){ pGuardar(K_V1,'1'); return true; } return pLeer(K_V1)==='1'; }
+  function capaPant(id,lab){
+    var o=document.createElement('div');
+    o.id=id; o.setAttribute('role','dialog'); o.setAttribute('aria-modal','true'); o.setAttribute('aria-labelledby',lab);
+    o.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;background:#FBF7F1;color:#3b3b3b;font-family:Mulish,system-ui,sans-serif;padding:max(24px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom))';
+    return o;
+  }
+  var CAJA_PANT='margin-top:14px;padding:14px 16px;border-radius:16px;background:#fff;text-align:left;font-size:.9rem;line-height:1.5;box-shadow:0 1px 6px rgba(0,0,0,.08)';
+  var BTN_PANT='display:block;width:100%;min-height:54px;border:0;border-radius:999px;padding:.9em 1.2em;background:#4F6B58;color:#fff;font:800 1.02rem Mulish,system-ui,sans-serif;cursor:pointer';
+  var TIT_PANT='font:600 1.9rem/1.15 Cormorant Garamond,Georgia,serif;margin:0 0 12px;color:#4F6B58';
+  var LINK_PANT='margin-top:8px;border:0;background:none;padding:10px 14px;color:#6b6b6b;font:600 .9rem Mulish,system-ui,sans-serif;text-decoration:underline;cursor:pointer';
+
   var pantInst=null;
   function cerrarPantInst(){
     if(pantInst&&pantInst.parentNode) pantInst.parentNode.removeChild(pantInst);
     pantInst=null; document.documentElement.style.overflow='';
   }
   function pantallaInstalar(){
-    if(!/[?&]desde=v1/.test(location.search)||esStandalone()||pantInst) return;
-    var ios=esIOS();
-    var o=document.createElement('div'); pantInst=o;
-    o.id='pant-instalar'; o.setAttribute('role','dialog'); o.setAttribute('aria-modal','true'); o.setAttribute('aria-labelledby','pant-inst-t');
-    o.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;background:#FBF7F1;color:#3b3b3b;font-family:Mulish,system-ui,sans-serif;padding:max(24px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom))';
-    var caja='margin-top:14px;padding:14px 16px;border-radius:16px;background:#fff;text-align:left;font-size:.9rem;line-height:1.5;box-shadow:0 1px 6px rgba(0,0,0,.08)';
+    if(pantInst||esStandalone()||!esMovil()) return;
+    var v1=vinoDeV1(), ios=esIOS();
+    if(v1){ if(pSesion()==='1') return; }
+    else{ var t=parseInt(pLeer(K_PANT),10); if(t>1e12&&Date.now()-t<7*864e5) return; }
+
+    var o=capaPant('pant-instalar','pant-inst-t'); pantInst=o;
     var h='<div style="margin:auto;width:100%;max-width:420px;text-align:center">'
       +'<div aria-hidden="true" style="font-size:2.4rem;line-height:1;margin-bottom:14px">🌿</div>'
-      +'<h1 id="pant-inst-t" style="font:600 1.9rem/1.15 Cormorant Garamond,Georgia,serif;margin:0 0 12px;color:#4F6B58">Último paso: instalá la app nueva</h1>'
+      +'<h1 id="pant-inst-t" style="'+TIT_PANT+'">'+(v1?'Último paso: instalá la app nueva':'Instalá la app de Mujeres de Acción')+'</h1>'
       +'<p style="margin:0 0 22px;font-size:1rem;line-height:1.55">Así queda en tu celular con su ícono verde y te llegan los avisos.</p>';
     if(ios){
-      h+='<div style="'+caja+'"><p style="margin:0 0 8px;font-weight:700">En iPhone:</p><ol style="margin:0;padding-left:1.2em"><li>Tocá el botón Compartir.</li><li>Elegí “Agregar a inicio”.</li></ol></div>';
+      h+='<div style="'+CAJA_PANT+'"><p style="margin:0 0 8px;font-weight:700">En iPhone:</p><ol style="margin:0;padding-left:1.2em"><li>Tocá el botón Compartir.</li><li>Elegí “Agregar a inicio”.</li>'
+        +(v1?'<li>Cuando veas el ícono verde en tu pantalla, ya podés borrar el rosa de la versión anterior: mantenelo apretado y elegí “Eliminar app”.</li>':'')
+        +'</ol></div>';
     }else{
-      h+='<button type="button" id="pant-inst-ir" style="display:block;width:100%;min-height:54px;border:0;border-radius:999px;padding:.9em 1.2em;background:#4F6B58;color:#fff;font:800 1.02rem Mulish,system-ui,sans-serif;cursor:pointer">Instalar la app</button>'
-        +'<div id="pant-inst-ayuda" style="'+caja+'"><p style="margin:0">Si no se abre el cartel de instalación: tocá el menú ⋮ de Chrome (arriba a la derecha) y elegí “Instalar app” o “Agregar a la pantalla de inicio”.</p></div>';
+      h+='<button type="button" id="pant-inst-ir" style="'+BTN_PANT+'">'+(v1?'Instalar la app':'Instalar esta versión')+'</button>'
+        +'<div id="pant-inst-ayuda" style="'+CAJA_PANT+'"><p style="margin:0">Si no se abre el cartel de instalación: tocá el menú ⋮ de Chrome (arriba a la derecha) y elegí “Instalar app” o “Agregar a la pantalla de inicio”.</p></div>';
     }
     h+='<p style="margin:16px 0 0;font-size:.85rem;color:#6b6b6b">Si ya la instalaste, abrila desde su ícono verde.</p>'
-      +'<button type="button" id="pant-inst-luego" style="margin-top:8px;border:0;background:none;padding:10px 14px;color:#6b6b6b;font:600 .9rem Mulish,system-ui,sans-serif;text-decoration:underline;cursor:pointer">Más tarde</button></div>';
+      +'<button type="button" id="pant-inst-luego" style="'+LINK_PANT+'">Más tarde</button></div>';
     o.innerHTML=h; document.body.appendChild(o); document.documentElement.style.overflow='hidden';
+
     var ir=o.querySelector('#pant-inst-ir');
     if(ir) ir.addEventListener('click',function(){
       if(promptInst){
         promptInst.prompt();
         promptInst.userChoice.then(function(r){ promptInst=null; $('#instalar').innerHTML=''; if(r&&r.outcome==='accepted') cerrarPantInst(); });
       }else{
-        var a=o.querySelector('#pant-inst-ayuda'); a.style.outline='2px solid #4F6B58';
+        o.querySelector('#pant-inst-ayuda').style.outline='2px solid #4F6B58';
       }
     });
-    o.querySelector('#pant-inst-luego').addEventListener('click',cerrarPantInst);
+    o.querySelector('#pant-inst-luego').addEventListener('click',function(){
+      if(v1) pSesion('1'); else pGuardar(K_PANT,String(Date.now()));
+      cerrarPantInst();
+    });
     try{ (ir||o.querySelector('#pant-inst-luego')).focus({preventScroll:true}); }catch(e){}
+  }
+
+  /* "¡Listo!": aparece cuando el navegador avisa que la app se instaló (Android). */
+  function mostrarListo(){
+    if($('#pant-listo')) return;
+    var v1=pLeer(K_V1)==='1';
+    var o=capaPant('pant-listo','pant-listo-t');
+    var h='<div style="margin:auto;width:100%;max-width:420px;text-align:center">'
+      +'<div aria-hidden="true" style="font-size:2.4rem;line-height:1;margin-bottom:14px">🌿</div>'
+      +'<h1 id="pant-listo-t" style="'+TIT_PANT+'">¡Listo!</h1>'
+      +'<p style="margin:0;font-size:1rem;line-height:1.55">La app ya está instalada. Buscá el ícono verde en tu pantalla de inicio y abrila desde ahí.</p>'
+      +(v1?'<div style="'+CAJA_PANT+'"><p style="margin:0">Si todavía tenés el ícono rosa de la versión anterior, ya podés borrarlo: mantené apretado ese ícono y elegí “Desinstalar”.</p></div>':'')
+      +'<button type="button" id="pant-listo-ok" style="'+BTN_PANT+';margin-top:22px">Entendido</button></div>';
+    o.innerHTML=h; document.body.appendChild(o); document.documentElement.style.overflow='hidden';
+    o.querySelector('#pant-listo-ok').addEventListener('click',function(){
+      if(o.parentNode) o.parentNode.removeChild(o); document.documentElement.style.overflow='';
+    });
+    try{ o.querySelector('#pant-listo-ok').focus({preventScroll:true}); }catch(e){}
   }
   pantallaInstalar();
 
